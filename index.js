@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors')
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { query } = require('express');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -19,8 +20,24 @@ async function run() {
 
         // get all billings
         app.get('/billing-list', async (req, res) => {
-            const result = await blillings.find({}).toArray();
+            console.log(req.query)
+            const page = parseInt(req.query.page);
+            const limit = parseInt(req.query.size);
+            const cursor = blillings.find({})
+            let result;
+            if (page || limit) {
+                result = await cursor.skip(page * limit).limit(limit).toArray();
+            } else {
+                result = await cursor.toArray();
+            }
             res.send(result)
+        })
+
+        // get total billings number
+        app.get('/billingscount', async (req, res) => {
+            const cursor = blillings.find({})
+            const count = await cursor.count();
+            res.send({ count: count })
         })
 
         // post a billing
@@ -50,6 +67,32 @@ async function run() {
             res.send(result);
         })
 
+        // search data by email
+        app.get('/search-billing-email/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email }
+            const result = await blillings.find(filter).toArray();
+            res.send(result)
+        })
+
+        // search data by name
+        app.get('/search-billing-name/:name', async (req, res) => {
+            const name = req.params.name;
+            const filter = { name }
+            const result = await blillings.find(filter).toArray();
+            res.send(result)
+        })
+
+        // search data by number
+        app.get('/search-billing-number/:number', async (req, res) => {
+            const number = req.params.number;
+            const filter = { phone: number }
+            const result = await blillings.find(filter).toArray();
+            res.send(result)
+        })
+
+
+
     } finally {
         // empty block for now
     }
@@ -64,8 +107,6 @@ app.get('/', async (req, res) => {
     res.send('I am ready to start the project.')
 })
 
-// pass qZoTKmRU8Xpv4Z9m
-// user power-hack
 // port litening
 app.listen(port, () => {
     console.log('Port', port)
